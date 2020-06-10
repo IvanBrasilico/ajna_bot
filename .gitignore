@@ -1,2 +1,4 @@
 # Project exclude paths
 /bot-venv/
+app/config.py
+.idea

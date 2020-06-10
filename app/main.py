@@ -2,8 +2,7 @@ import logging
 
 from telegram.ext import CommandHandler
 from telegram.ext import Updater
-
-BOTTOKEN = '915167760:AAE7c8D3H6O5reaVRPVgOF43066QVfKjnQk'
+from config import BOTTOKEN
 
 updater = Updater(token=BOTTOKEN, use_context=True)
 dispatcher = updater.dispatcher
