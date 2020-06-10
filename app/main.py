@@ -44,37 +44,25 @@ def conteiner(update, context):
     payload = {'numerolote': numero,
                'datainicio': inicio,
                'datafim': fim}
-    r = requests.post(APIURL + 'consulta_container_text', data=payload)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=r.text)
-
-
-def conteiner2(update, context):
-    fim = datetime.now()
-    inicio = fim - timedelta(days=90)
-    numero = context.args[0]
-    logger.info('Consultando contêiner %s' % numero)
-    payload = {'numerolote': numero,
-               'datainicio': inicio,
-               'datafim': fim}
-    r = requests.post(APIURL + 'consulta_container', data=payload)
+    r = requests.post(APIURL + 'consulta_container_text', data=payload, verify=False)
     context.bot.send_message(chat_id=update.effective_chat.id, text=r.text)
 
 
 def minhas_fichas(update, context):
     cpf = context.args[0]
     logger.info(cpf)
-    r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf)
+    r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf, verify=False)
     context.bot.send_message(chat_id=update.effective_chat.id, text=r.text)
 
 
 def send_scan(update, context):
     numero = context.args[0]
     logger.info('Consultando contêiner %s' % numero)
-    r = requests.get(APIURL + 'escaneamentos_container/%s' % numero)
+    r = requests.get(APIURL + 'escaneamentos_container/%s' % numero, verify=False)
     logger.info(r.text)
     imagens = r.json()
     for _id in imagens:
-        r = requests.get(APIURL + 'scan/%s' % _id)
+        r = requests.get(APIURL + 'scan/%s' % _id, verify=False)
         bio = io.BytesIO(r.content)
         bio.name = '%s.jpeg' % _id
         bio.seek(0)
@@ -84,11 +72,11 @@ def send_scan(update, context):
 def send_fotos(update, context):
     rvf_id = context.args[0]
     logger.info('Consultando rvf %s' % rvf_id)
-    r = requests.get(APIURL + 'imagens_rvf/%s' % rvf_id)
+    r = requests.get(APIURL + 'imagens_rvf/%s' % rvf_id, verify=False)
     logger.info(r.text)
     imagens = r.json()
     for _id in imagens:
-        r = requests.get(APIURL + 'image/%s' % _id)
+        r = requests.get(APIURL + 'image/%s' % _id, verify=False)
         bio = io.BytesIO(r.content)
         bio.name = '%s.jpeg' % _id
         bio.seek(0)
@@ -98,7 +86,6 @@ def send_fotos(update, context):
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(CommandHandler('conteiner', conteiner))
-dispatcher.add_handler(CommandHandler('conteiner2', conteiner2))
 dispatcher.add_handler(CommandHandler('fichas', minhas_fichas))
 dispatcher.add_handler(CommandHandler('scan', send_scan))
 dispatcher.add_handler(CommandHandler('fotos', send_fotos))
