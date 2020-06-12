@@ -113,7 +113,7 @@ def mostra_ficha(update, context):
     result = FICHA_ABERTA
     text.append('Ficha Selecionada: %s' % rvf_selecionado)
     try:
-        r = requests.get(APIURL + 'get_rvf/%s' % rvf_selecionado)
+        r = requests.get(APIURL + 'get_rvf/%s' % rvf_selecionado, verify=False)
         if r.status_code != 200:
             raise Exception(r.text)
         rvf = r.json()
@@ -155,7 +155,7 @@ def upload_foto(update, context):
         payload = {'content': b64encode(new_file.download_as_bytearray()),
                    'filename': 'teste.jpg',
                    'rvf_id': rvf_selecionado}
-        r = requests.post(APIURL + 'api/rvf_imgupload', data=payload)
+        r = requests.post(APIURL + 'api/rvf_imgupload', data=payload, verify=False)
         if r.status_code != 201:
             raise Exception(r.text)
         text = 'Arquivo Salvo com sucesso'
