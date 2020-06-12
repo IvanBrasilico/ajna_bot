@@ -177,7 +177,7 @@ def start(update, context):
     try:
         r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
         if r.status_code != 200:
-            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+            raise Exception('Erro: %s - %s (erro 404 pode ser Usuário não cadastrado)' % (r.status_code, r.text))
         cpf = r.json()['cpf']
         if cpf is None:
             raise Exception('Usuário não habilitado!!')
