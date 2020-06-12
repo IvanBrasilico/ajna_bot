@@ -1,5 +1,6 @@
 """Funções para consultar Endpoints do bhadrasana2."""
 import io
+from base64 import b64encode
 from datetime import datetime, timedelta
 
 import requests
@@ -9,22 +10,24 @@ from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHa
 from config import APIURL
 from utils import logger
 
-MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, SCAN, FOTOS, ABRE_FICHA,\
+MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, SCAN, FOTOS, ABRE_FICHA, \
 CONSULTA_FICHA, FICHA_ABERTA = range(8)
 
 
 def minhas_fichas(update, context):
     logger.info('minhas_fichas')
-    logger.info('update')
-    logger.info(update)
-    cpf = update.message.text
-    logger.info(cpf)
+    dir(update.message)
+    user_name = update.message.from_user.username
+    logger.info(user_name)
     try:
+        r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
+        if r.status_code != 200:
+            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+        cpf = r.json()['cpf']
         r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf, verify=False)
         if r.status_code != 200:
-            text = 'Erro: %s - %s' % (r.status_code, r.text)
-        else:
-            text = r.text
+            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+        text = r.text
     except Exception as err:
         text = str(err)
     update.message.reply_text(text)
@@ -32,6 +35,7 @@ def minhas_fichas(update, context):
 
 
 def conteiner(update, context):
+    logger.info('conteiner')
     try:
         fim = datetime.now()
         inicio = fim - timedelta(days=90)
@@ -50,6 +54,7 @@ def conteiner(update, context):
 
 
 def send_scan(update, context):
+    logger.info('send_scan')
     numero = update.message.text
     logger.info('Consultando contêiner %s' % numero)
     try:
@@ -69,6 +74,7 @@ def send_scan(update, context):
 
 
 def send_fotos(update, context):
+    logger.info('send_fotos')
     text = update.message.text
     try:
         if str(text).isnumeric():
@@ -78,7 +84,6 @@ def send_fotos(update, context):
             # TODO: Consulta imagens por contêiner
             logger.info('Consultando fotos da rvf %s' % text)
             r = requests.get(APIURL + 'imagens_rvf/%s' % text, verify=False)
-
         logger.info(r.text)
         imagens = r.json()
         for _id in imagens:
@@ -95,38 +100,61 @@ def send_fotos(update, context):
 
 
 def mostra_ficha(update, context):
-    rvf_selecionado = 0
+    logger.info('mostra_ficha')
+    context.user_data['rvf_id'] = update.message.text
+    rvf_selecionado = update.message.text
     text = []
+    result = FICHA_ABERTA
     text.append('Ficha Selecionada: %s' % rvf_selecionado)
-    # TODO: Exibir campos da Ficha
-    text.append('Envie texto para adicionar na descrição da Ficha')
-    text.append('Envie fotos para inserir na Ficha')
-    text.append('Digite \'sair\' para voltar ao menu inicial')
-    text = '\n'.join(text)
+    try:
+        r = requests.get(APIURL + 'get_rvf/%s' % rvf_selecionado)
+        if r.status_code != 200:
+            raise Exception(r.text)
+        rvf = r.json()
+        text.append('Container: {}'.format(rvf.get('numerolote')))
+        text.append('Envie texto para adicionar na descrição da Ficha')
+        text.append('Envie fotos para inserir na Ficha')
+        text.append('Digite \'sair\' para voltar ao menu inicial')
+        text = '\n'.join(text)
+    except Exception as err:
+        text = str(err)
+        logger.error(err, exc_info=True)
+        result = CONSULTA_FICHA
     update.message.reply_text(
         text,
         reply_markup=ReplyKeyboardRemove())
-    return FICHA_ABERTA
+    return result
 
 
 def edita_descricao_ficha(update, context):
-    rvf_selecionado = 0
+    logger.info('edita_descricao_ficha')
+    rvf_selecionado = context.user_data['rvf_id']
     update.message.reply_text(
-        update.message.text,
+        'Colocar descrição %s na rvf %s' %
+        (update.message.text, rvf_selecionado),
         reply_markup=ReplyKeyboardRemove())
     return FICHA_ABERTA
 
 
 def upload_foto(update, context):
-    logger.info('Recebendo photo')
-    file_id = update.message.photo[-1]
-    new_file = context.bot.get_file(file_id)
-    print(new_file)
-    print(dir(new_file))
-    print(update.message.message_id)
-    print(update.message.chat_id)
-    new_file.download('teste.jpg')
-    context.bot.send_message(chat_id=update.effective_chat.id, text='Arquivo salvo')
+    logger.info('upload_foto')
+    rvf_selecionado = context.user_data['rvf_id']
+    try:
+        file_id = update.message.photo[-1]
+        new_file = context.bot.get_file(file_id)
+        payload = {'content': b64encode(new_file.download_as_bytearray()),
+                   'filename': 'teste.jpg',
+                   'rvf_id': rvf_selecionado}
+        r = requests.post(APIURL + 'api/rvf_imgupload', data=payload)
+        if r.status_code != 201:
+            raise Exception(r.text)
+        text = 'Arquivo Salvo com sucesso'
+    except Exception as err:
+        text = str(err)
+        logger.error(err, exc_info=True)
+    update.message.reply_text(
+        text,
+        reply_markup=ReplyKeyboardRemove())
     return FICHA_ABERTA
 
 
@@ -194,7 +222,7 @@ def fecha_ficha(update, context):
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler('start', start)],
     states={
-        MENU: [MessageHandler(Filters.regex('Minhas Fichas'), get_fichas),
+        MENU: [MessageHandler(Filters.regex('Minhas Fichas'), minhas_fichas),
                MessageHandler(Filters.regex('Imagem Escaner'), get_scan),
                MessageHandler(Filters.regex('Fotos verificacao'), get_fotos),
                MessageHandler(Filters.regex('Consulta Conteiner'), get_conteiner),
@@ -206,9 +234,9 @@ conv_handler = ConversationHandler(
         FOTOS: [MessageHandler(Filters.text, send_fotos)],
         ABRE_FICHA: [MessageHandler(Filters.text, abre_ficha)],
         CONSULTA_FICHA: [MessageHandler(Filters.text, mostra_ficha)],
-        FICHA_ABERTA: [MessageHandler(Filters.regex('sair'), fecha_ficha),
-                                      MessageHandler(Filters.text, edita_descricao_ficha),
-                                      MessageHandler(Filters.photo, upload_foto),],
+        FICHA_ABERTA: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
+                       MessageHandler(Filters.text, edita_descricao_ficha),
+                       MessageHandler(Filters.photo, upload_foto), ],
     },
 
     fallbacks=[CommandHandler('cancel', cancel)]
