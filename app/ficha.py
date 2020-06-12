@@ -10,8 +10,8 @@ from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHa
 from config import APIURL
 from utils import logger
 
-MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, SCAN, FOTOS, ABRE_FICHA, \
-CONSULTA_FICHA, FICHA_ABERTA = range(8)
+MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, SCAN, FOTOS, SELECIONA_FICHA, \
+CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, RVF_ABERTA = range(10)
 
 
 def minhas_fichas(update, context):
@@ -103,15 +103,67 @@ def send_fotos(update, context):
     return start(update, context)
 
 
+def seleciona_ficha(update, context):
+    logger.info('abre_ficha')
+    update.message.reply_text(
+        'Digite o id da Ficha',
+        reply_markup=ReplyKeyboardRemove())
+    return CONSULTA_FICHA
+
+
 def mostra_ficha(update, context):
+    logger.info('mostra_ficha')
+    context.user_data['ovr_id'] = update.message.text
+    ovr_selecionado = update.message.text
+    user_name = update.message.from_user.username
+    logger.info('%s mostra_ficha ovr %s... ' % (user_name, ovr_selecionado))
+    text = []
+    result = CONSULTA_RVF
+    text.append('Ficha Selecionada: %s' % ovr_selecionado)
+    try:
+        r = requests.get(APIURL + 'get_ovr/%s' % ovr_selecionado, verify=False)
+        if r.status_code != 200:
+            raise Exception(r.text)
+        ovr = r.json()
+        print(ovr)
+        text.append('CE: {}'.format(ovr.get('numeroCEmercante')))
+        text.append('Declaracao: {}'.format(ovr.get('numerodeclaracao')))
+        text.append('Fiscalizado: {}'.format(ovr.get('fiscalizado')))
+        rvfs = ovr.get('rvfs')
+        if rvfs:
+            for rvf in rvfs:
+                text.append('RVF {} contêiner/lote {}'.format(
+                    rvf.get('id'), rvf.get('numerolote')))
+        text.append('Digite o id da Verificação Física a editar')
+        text = '\n'.join(text)
+    except Exception as err:
+        text = 'Erro ao consultar a ficha. Digite novamente o id ou sair \n' + str(err)
+        logger.error(err, exc_info=True)
+        result = CONSULTA_FICHA
+    update.message.reply_text(
+        text,
+        reply_markup=ReplyKeyboardRemove())
+    return result
+
+
+def seleciona_rvf(update, context):
+    logger.info('seleciona_rvf')
+    update.message.reply_text(
+        'Digite o id da Verificação Física a editar\n'
+        'ou \'sair\' para o menu inicial',
+        reply_markup=ReplyKeyboardRemove())
+    return CONSULTA_RVF
+
+
+def mostra_rvf(update, context):
     logger.info('mostra_ficha')
     context.user_data['rvf_id'] = update.message.text
     rvf_selecionado = update.message.text
     user_name = update.message.from_user.username
     logger.info('%s mostra_ficha rvf %s... ' % (user_name, rvf_selecionado))
     text = []
-    result = FICHA_ABERTA
-    text.append('Ficha Selecionada: %s' % rvf_selecionado)
+    result = RVF_ABERTA
+    text.append('Verificação física selecionada: %s' % rvf_selecionado)
     try:
         r = requests.get(APIURL + 'get_rvf/%s' % rvf_selecionado, verify=False)
         if r.status_code != 200:
@@ -123,9 +175,9 @@ def mostra_ficha(update, context):
         text.append('Digite \'sair\' para voltar ao menu inicial')
         text = '\n'.join(text)
     except Exception as err:
-        text = str(err)
+        text = 'Erro ao consultar a verificação. Digite novamente o id ou sair \n' + str(err)
         logger.error(err, exc_info=True)
-        result = CONSULTA_FICHA
+        result = CONSULTA_RVF
     update.message.reply_text(
         text,
         reply_markup=ReplyKeyboardRemove())
@@ -141,7 +193,7 @@ def edita_descricao_ficha(update, context):
         'Colocar descrição %s na rvf %s' %
         (update.message.text, rvf_selecionado),
         reply_markup=ReplyKeyboardRemove())
-    return FICHA_ABERTA
+    return RVF_ABERTA
 
 
 def upload_foto(update, context):
@@ -165,7 +217,12 @@ def upload_foto(update, context):
     update.message.reply_text(
         text,
         reply_markup=ReplyKeyboardRemove())
-    return FICHA_ABERTA
+    return RVF_ABERTA
+
+
+def fecha_ficha(update, context):
+    logger.info('fecha_ficha')
+    return start(update, context)
 
 
 def start(update, context):
@@ -229,19 +286,6 @@ def get_fotos(update, context):
     return FOTOS
 
 
-def abre_ficha(update, context):
-    logger.info('abre_ficha')
-    update.message.reply_text(
-        'Digite o id da verificação física',
-        reply_markup=ReplyKeyboardRemove())
-    return CONSULTA_FICHA
-
-
-def fecha_ficha(update, context):
-    logger.info('fecha_ficha')
-    return start(update, context)
-
-
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler('start', start)],
     states={
@@ -249,17 +293,21 @@ conv_handler = ConversationHandler(
                MessageHandler(Filters.regex('Imagem Escaner'), get_scan),
                MessageHandler(Filters.regex('Fotos verificacao'), get_fotos),
                MessageHandler(Filters.regex('Consulta Conteiner'), get_conteiner),
-               MessageHandler(Filters.regex('Abre Ficha'), abre_ficha),
+               MessageHandler(Filters.regex('Abre Ficha'), seleciona_ficha),
                MessageHandler(Filters.text, start)],
         MINHAS_FICHAS: [MessageHandler(Filters.text, minhas_fichas)],
         CONSULTA_CONTEINER: [MessageHandler(Filters.text, conteiner)],
         SCAN: [MessageHandler(Filters.text, send_scan)],
         FOTOS: [MessageHandler(Filters.text, send_fotos)],
-        ABRE_FICHA: [MessageHandler(Filters.text, abre_ficha)],
-        CONSULTA_FICHA: [MessageHandler(Filters.text, mostra_ficha)],
-        FICHA_ABERTA: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
-                       MessageHandler(Filters.text, edita_descricao_ficha),
-                       MessageHandler(Filters.photo, upload_foto), ],
+        SELECIONA_FICHA: [MessageHandler(Filters.text, seleciona_ficha)],
+        CONSULTA_FICHA: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
+                         MessageHandler(Filters.text, mostra_ficha)],
+        SELECIONA_RVF: [MessageHandler(Filters.text, seleciona_rvf)],
+        CONSULTA_RVF: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
+                       MessageHandler(Filters.text, mostra_rvf)],
+        RVF_ABERTA: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
+                     MessageHandler(Filters.text, edita_descricao_ficha),
+                     MessageHandler(Filters.photo, upload_foto), ],
     },
 
     fallbacks=[CommandHandler('cancel', cancel)]
