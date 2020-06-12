@@ -179,12 +179,15 @@ def start(update, context):
         if r.status_code != 200:
             raise Exception('Erro: %s - %s' % (r.status_code, r.text))
         cpf = r.json()['cpf']
+        if cpf is None:
+            raise Exception('Usuário não habilitado!!')
         text = 'Usuário %s CPF %s' % (user_name, cpf)
+        update.message.reply_text(
+            'Cliente Telegram do AJNA (alfa) - Escolha opção \n' + text,
+            reply_markup=ReplyKeyboardMarkup(initial_menu, one_time_keyboard=True))
     except Exception as err:
         text = str(err)
-    update.message.reply_text(
-        'Cliente Telegram do AJNA (alfa) - Escolha opção \n' + text,
-        reply_markup=ReplyKeyboardMarkup(initial_menu, one_time_keyboard=True))
+        update.message.reply_text(text)
     return MENU
 
 
