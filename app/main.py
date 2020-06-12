@@ -1,4 +1,6 @@
 import sys
+import warnings
+warnings.simplefilter('ignore')
 
 from ficha import conv_handler
 from utils import logger, error
