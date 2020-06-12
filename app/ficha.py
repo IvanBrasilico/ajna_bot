@@ -16,7 +16,7 @@ CONSULTA_FICHA, FICHA_ABERTA = range(8)
 
 def minhas_fichas(update, context):
     logger.info('minhas_fichas')
-    dir(update.message)
+    # print(dir(update.message))
     user_name = update.message.from_user.username
     logger.info(user_name)
     try:
@@ -40,7 +40,8 @@ def conteiner(update, context):
         fim = datetime.now()
         inicio = fim - timedelta(days=90)
         numero = update.message.text
-        logger.info('Consultando contêiner %s' % numero)
+        user_name = update.message.from_user.username
+        logger.info('%s consultando contêiner %s' % (user_name, numero))
         payload = {'numerolote': numero,
                    'datainicio': inicio,
                    'datafim': fim}
@@ -56,7 +57,8 @@ def conteiner(update, context):
 def send_scan(update, context):
     logger.info('send_scan')
     numero = update.message.text
-    logger.info('Consultando contêiner %s' % numero)
+    user_name = update.message.from_user.username
+    logger.info('%s consultando imagem de escaneamento %s' % (user_name, numero))
     try:
         r = requests.get(APIURL + 'escaneamentos_container/%s' % numero, verify=False)
         imagens = r.json()
@@ -76,6 +78,8 @@ def send_scan(update, context):
 def send_fotos(update, context):
     logger.info('send_fotos')
     text = update.message.text
+    user_name = update.message.from_user.username
+    logger.info('%s consultando fotos %s... ' % (user_name, text))
     try:
         if str(text).isnumeric():
             logger.info('Consultando fotos da rvf %s' % text)
@@ -103,6 +107,8 @@ def mostra_ficha(update, context):
     logger.info('mostra_ficha')
     context.user_data['rvf_id'] = update.message.text
     rvf_selecionado = update.message.text
+    user_name = update.message.from_user.username
+    logger.info('%s mostra_ficha rvf %s... ' % (user_name, rvf_selecionado))
     text = []
     result = FICHA_ABERTA
     text.append('Ficha Selecionada: %s' % rvf_selecionado)
@@ -129,6 +135,8 @@ def mostra_ficha(update, context):
 def edita_descricao_ficha(update, context):
     logger.info('edita_descricao_ficha')
     rvf_selecionado = context.user_data['rvf_id']
+    user_name = update.message.from_user.username
+    logger.info('%s Editando descrição rvf %s... ' % (user_name, rvf_selecionado))
     update.message.reply_text(
         'Colocar descrição %s na rvf %s' %
         (update.message.text, rvf_selecionado),
@@ -139,6 +147,8 @@ def edita_descricao_ficha(update, context):
 def upload_foto(update, context):
     logger.info('upload_foto')
     rvf_selecionado = context.user_data['rvf_id']
+    user_name = update.message.from_user.username
+    logger.info('%s Uploading image rvf %s... ' % (user_name, rvf_selecionado))
     try:
         file_id = update.message.photo[-1]
         new_file = context.bot.get_file(file_id)
@@ -162,8 +172,18 @@ def start(update, context):
     initial_menu = [['Minhas Fichas', 'Consulta Conteiner', 'Imagem Escaner',
                      'Fotos verificacao', 'Abre Ficha']]
     logger.info('start')
+    user_name = update.message.from_user.username
+    logger.info('%s Starting... ' % user_name)
+    try:
+        r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
+        if r.status_code != 200:
+            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+        cpf = r.json()['cpf']
+        text = 'Usuário %s CPF %s' % (user_name, cpf)
+    except Exception as err:
+        text = str(err)
     update.message.reply_text(
-        'Cliente Telegram do AJNA (alfa) - Escolha opção',
+        'Cliente Telegram do AJNA (alfa) - Escolha opção \n' + text,
         reply_markup=ReplyKeyboardMarkup(initial_menu, one_time_keyboard=True))
     return MENU
 
