@@ -10,8 +10,31 @@ from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHa
 from config import APIURL
 from utils import logger
 
-MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, SCAN, FOTOS, SELECIONA_FICHA, \
-CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, RVF_ABERTA = range(10)
+MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, SCAN, FOTOS, \
+SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, RVF_ABERTA = range(11)
+
+
+def start(update, context):
+    initial_menu = [['Minhas Fichas'], ['Consulta Conteiner'], ['Consulta Empresa'],
+                    ['Imagem Escaner'], ['Fotos verificacao'], ['Abre Ficha']]
+    logger.info('start')
+    user_name = update.message.from_user.username
+    logger.info('%s Starting... ' % user_name)
+    try:
+        r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
+        if r.status_code != 200:
+            raise Exception('Erro: %s - %s (erro 404 pode ser Usuário não cadastrado)' % (r.status_code, r.text))
+        cpf = r.json()['cpf']
+        if cpf is None:
+            raise Exception('Usuário não habilitado!!')
+        text = 'Usuário %s CPF %s' % (user_name, cpf)
+        update.message.reply_text(
+            'Cliente Telegram do AJNA (alfa) - Escolha opção \n' + text,
+            reply_markup=ReplyKeyboardMarkup(initial_menu, one_time_keyboard=True))
+    except Exception as err:
+        text = str(err)
+        update.message.reply_text(text)
+    return MENU
 
 
 def minhas_fichas(update, context):
@@ -28,13 +51,20 @@ def minhas_fichas(update, context):
         if r.status_code != 200:
             raise Exception('Erro: %s - %s' % (r.status_code, r.text))
         text = r.text
+        linhas = r.text.split('\n')
+        print(len(linhas))
+        opcoes = [['Abre Ficha %s'% linha.split()[0].strip()] for linha in linhas[1:]]
     except Exception as err:
         text = str(err)
-    update.message.reply_text(text)
-    return start(update, context)
+    update.message.reply_text(
+        text,
+        reply_markup=ReplyKeyboardMarkup([*opcoes, ['Sair']],
+                                         one_time_keyboard=True))
+    return MENU
+    # return start(update, context)
 
 
-def conteiner(update, context):
+def consulta_conteiner(update, context):
     logger.info('conteiner')
     try:
         fim = datetime.now()
@@ -45,7 +75,24 @@ def conteiner(update, context):
         payload = {'numerolote': numero,
                    'datainicio': inicio,
                    'datafim': fim}
-        r = requests.post(APIURL + 'consulta_container_text', data=payload, verify=False)
+        r = requests.post(APIURL + 'consulta_conteiner_text', data=payload, verify=False)
+        update.message.reply_text(r.text)
+    except Exception as err:
+        text = str(err)
+        logger.error(err, exc_info=True)
+        update.message.reply_text(text)
+    return start(update, context)
+
+
+def consulta_empresa(update, context):
+    logger.info('empresa')
+    try:
+        fim = datetime.now()
+        inicio = fim - timedelta(days=90)
+        cnpj = update.message.text
+        user_name = update.message.from_user.username
+        logger.info('%s consultando empresa %s' % (user_name, cnpj))
+        r = requests.get(APIURL + 'consulta_empresa_text/%s' % cnpj, verify=False)
         update.message.reply_text(r.text)
     except Exception as err:
         text = str(err)
@@ -105,6 +152,11 @@ def send_fotos(update, context):
 
 def seleciona_ficha(update, context):
     logger.info('abre_ficha')
+    text_parts = update.message.text.split()
+    if len(text_parts) > 2:
+        print('Veio por botão, passar direto para ovr %s...' % text_parts[2])
+        update.message.text = text_parts[2].strip()
+        return mostra_ficha(update, context)
     update.message.reply_text(
         'Digite o id da Ficha',
         reply_markup=ReplyKeyboardRemove())
@@ -188,10 +240,21 @@ def edita_descricao_ficha(update, context):
     logger.info('edita_descricao_ficha')
     rvf_selecionado = context.user_data['rvf_id']
     user_name = update.message.from_user.username
+    descricao = update.message.text
+    logger.info(descricao)
     logger.info('%s Editando descrição rvf %s... ' % (user_name, rvf_selecionado))
-    update.message.reply_text(
-        'Colocar descrição %s na rvf %s' %
-        (update.message.text, rvf_selecionado),
+    try:
+        payload = {'descricao': update.message.text,
+                   'rvf_id': rvf_selecionado}
+        r = requests.post(APIURL + 'edita_descricao_rvf', data=payload, verify=False)
+        if r.status_code != 201:
+            raise Exception(r.text)
+        text = 'Descrição Salva com sucesso\n Nova descrição:'
+        text += r.json().get('descricao')
+    except Exception as err:
+        text = str(err)
+        logger.error(err, exc_info=True)
+    update.message.reply_text(text,
         reply_markup=ReplyKeyboardRemove())
     return RVF_ABERTA
 
@@ -225,29 +288,6 @@ def fecha_ficha(update, context):
     return start(update, context)
 
 
-def start(update, context):
-    initial_menu = [['Minhas Fichas', 'Consulta Conteiner', 'Imagem Escaner',
-                     'Fotos verificacao', 'Abre Ficha']]
-    logger.info('start')
-    user_name = update.message.from_user.username
-    logger.info('%s Starting... ' % user_name)
-    try:
-        r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
-        if r.status_code != 200:
-            raise Exception('Erro: %s - %s (erro 404 pode ser Usuário não cadastrado)' % (r.status_code, r.text))
-        cpf = r.json()['cpf']
-        if cpf is None:
-            raise Exception('Usuário não habilitado!!')
-        text = 'Usuário %s CPF %s' % (user_name, cpf)
-        update.message.reply_text(
-            'Cliente Telegram do AJNA (alfa) - Escolha opção \n' + text,
-            reply_markup=ReplyKeyboardMarkup(initial_menu, one_time_keyboard=True))
-    except Exception as err:
-        text = str(err)
-        update.message.reply_text(text)
-    return MENU
-
-
 def cancel(update, context):
     user = update.message.from_user
     logger.info("Usuário %s saiu.", user.first_name)
@@ -269,6 +309,13 @@ def get_conteiner(update, context):
     update.message.reply_text(
         'Digite o número do contêiner', reply_markup=ReplyKeyboardRemove())
     return CONSULTA_CONTEINER
+
+
+def get_empresa(update, context):
+    logger.info('get_empresa')
+    update.message.reply_text(
+        'Digite o CNPJ a consultar, com no mínimo 8 dígitos (sem máscara)', reply_markup=ReplyKeyboardRemove())
+    return CONSULTA_EMPRESA
 
 
 def get_scan(update, context):
@@ -293,10 +340,12 @@ conv_handler = ConversationHandler(
                MessageHandler(Filters.regex('Imagem Escaner'), get_scan),
                MessageHandler(Filters.regex('Fotos verificacao'), get_fotos),
                MessageHandler(Filters.regex('Consulta Conteiner'), get_conteiner),
-               MessageHandler(Filters.regex('Abre Ficha'), seleciona_ficha),
+               MessageHandler(Filters.regex('Consulta Empresa'), get_empresa),
+               MessageHandler(Filters.regex('Abre Ficha.*'), seleciona_ficha),
                MessageHandler(Filters.text, start)],
         MINHAS_FICHAS: [MessageHandler(Filters.text, minhas_fichas)],
-        CONSULTA_CONTEINER: [MessageHandler(Filters.text, conteiner)],
+        CONSULTA_CONTEINER: [MessageHandler(Filters.text, consulta_conteiner)],
+        CONSULTA_EMPRESA: [MessageHandler(Filters.text, consulta_empresa)],
         SCAN: [MessageHandler(Filters.text, send_scan)],
         FOTOS: [MessageHandler(Filters.text, send_fotos)],
         SELECIONA_FICHA: [MessageHandler(Filters.text, seleciona_ficha)],
