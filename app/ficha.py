@@ -37,23 +37,28 @@ def start(update, context):
     return MENU
 
 
+def get_cpf_usuario_telegram(user_name):
+    # TODO: decorador para chamar em todas as entrados para evitar entrada direta
+    r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
+    if r.status_code != 200:
+        raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+    return r.json()['cpf']
+
+
 def minhas_fichas(update, context):
     logger.info('minhas_fichas')
     # print(dir(update.message))
     user_name = update.message.from_user.username
     logger.info(user_name)
     try:
-        r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
-        if r.status_code != 200:
-            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
-        cpf = r.json()['cpf']
+        cpf = get_cpf_usuario_telegram(user_name)
         r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf, verify=False)
         if r.status_code != 200:
             raise Exception('Erro: %s - %s' % (r.status_code, r.text))
         text = r.text
         linhas = r.text.split('\n')
         print(len(linhas))
-        opcoes = [['Abre Ficha %s'% linha.split()[0].strip()] for linha in linhas[1:]]
+        opcoes = [['Abre Ficha %s' % linha.split()[0].strip()] for linha in linhas[1:]]
     except Exception as err:
         text = str(err)
     update.message.reply_text(
@@ -107,7 +112,7 @@ def send_scan(update, context):
     user_name = update.message.from_user.username
     logger.info('%s consultando imagem de escaneamento %s' % (user_name, numero))
     try:
-        r = requests.get(APIURL + 'escaneamentos_container/%s' % numero, verify=False)
+        r = requests.get(APIURL + 'escaneamentos_conteiner/%s' % numero, verify=False)
         imagens = r.json()
         for _id in imagens:
             r = requests.get(APIURL + 'scan/%s' % _id, verify=False)
@@ -255,7 +260,7 @@ def edita_descricao_ficha(update, context):
         text = str(err)
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
-        reply_markup=ReplyKeyboardRemove())
+                              reply_markup=ReplyKeyboardRemove())
     return RVF_ABERTA
 
 
