@@ -57,7 +57,7 @@ def minhas_fichas(update, context):
             raise Exception('Erro: %s - %s' % (r.status_code, r.text))
         text = r.text
         linhas = r.text.split('\n')
-        print(len(linhas))
+        # print(len(linhas))
         opcoes = [['Abre Ficha %s' % linha.split()[0].strip()] for linha in linhas[1:]]
     except Exception as err:
         text = str(err)
@@ -113,13 +113,21 @@ def send_scan(update, context):
     logger.info('%s consultando imagem de escaneamento %s' % (user_name, numero))
     try:
         r = requests.get(APIURL + 'escaneamentos_conteiner/%s' % numero, verify=False)
+        if r.status_code == 404:
+            raise Exception('Contêiner não encontrado!')
+        if r.status_code != 200:
+            raise Exception(r.text)
         imagens = r.json()
-        for _id in imagens:
+        for imagem in imagens:
+            _id = imagem['_id']
             r = requests.get(APIURL + 'scan/%s' % _id, verify=False)
             bio = io.BytesIO(r.content)
             bio.name = '%s.jpeg' % _id
             bio.seek(0)
             context.bot.send_photo(chat_id=update.effective_chat.id, photo=bio)
+            dataescaneamento = imagem['dataescaneamento']
+            update.message.reply_text(dataescaneamento)
+            # context.bot.send_message()
     except Exception as err:
         text = str(err)
         logger.error(err, exc_info=True)
@@ -182,16 +190,17 @@ def mostra_ficha(update, context):
         if r.status_code != 200:
             raise Exception(r.text)
         ovr = r.json()
-        print(ovr)
+        # print(ovr)
         text.append('CE: {}'.format(ovr.get('numeroCEmercante')))
         text.append('Declaracao: {}'.format(ovr.get('numerodeclaracao')))
         text.append('Fiscalizado: {}'.format(ovr.get('fiscalizado')))
         rvfs = ovr.get('rvfs')
+        opcoes = []
         if rvfs:
             for rvf in rvfs:
                 text.append('RVF {} contêiner/lote {}'.format(
                     rvf.get('id'), rvf.get('numerolote')))
-        text.append('Digite o id da Verificação Física a editar')
+                opcoes.append(['Abre RVF %s' % rvf.get('id')])
         text = '\n'.join(text)
     except Exception as err:
         text = 'Erro ao consultar a ficha. Digite novamente o id ou sair \n' + str(err)
@@ -199,7 +208,8 @@ def mostra_ficha(update, context):
         result = CONSULTA_FICHA
     update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardRemove())
+        reply_markup=ReplyKeyboardMarkup([*opcoes, ['Sair']],
+                                         one_time_keyboard=True))
     return result
 
 
@@ -215,13 +225,19 @@ def seleciona_rvf(update, context):
 def mostra_rvf(update, context):
     logger.info('mostra_ficha')
     context.user_data['rvf_id'] = update.message.text
-    rvf_selecionado = update.message.text
+    rvf_selecionado = update.message.text.split()
+    if len(rvf_selecionado) == 3:
+        rvf_selecionado = rvf_selecionado[2].strip()
+    else:
+        rvf_selecionado = rvf_selecionado[0].strip()
     user_name = update.message.from_user.username
     logger.info('%s mostra_ficha rvf %s... ' % (user_name, rvf_selecionado))
     text = []
     result = RVF_ABERTA
     text.append('Verificação física selecionada: %s' % rvf_selecionado)
     try:
+        if not isinstance(rvf_selecionado, str):
+            raise('Valor inválido: {}'.format(rvf_selecionado))
         r = requests.get(APIURL + 'get_rvf/%s' % rvf_selecionado, verify=False)
         if r.status_code != 200:
             raise Exception(r.text)
