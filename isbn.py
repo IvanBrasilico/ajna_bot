@@ -6,9 +6,9 @@ import requests
 
 sys.path.append('.')
 
-from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
-from app.config import BOTTOKEN
+from bot_token import BOTTOKEN
 from app.utils import error, logger
 
 updater = Updater(token=BOTTOKEN, use_context=True)
@@ -27,6 +27,12 @@ csv_out = open('livros.csv', 'w+', newline='')
 writer = csv.DictWriter(csv_out, fieldnames=fields.split(','), extrasaction='ignore')
 writer.writeheader()
 
+
+def start(update, context):
+    update.message.reply_text('Digite ou leia código de barras de um ISBN'
+                              'para consultar no site isbn-search-br')
+
+
 def consulta_ISBN(update, context):
     try:
         text = update.message.text.strip()
@@ -43,6 +49,8 @@ def consulta_ISBN(update, context):
         logger.error(err, exc_info=True)
     update.message.reply_text(text)
 
+
+dispatcher.add_handler(CommandHandler('start', start))
 
 dispatcher.add_handler(MessageHandler(Filters.text, consulta_ISBN))
 
