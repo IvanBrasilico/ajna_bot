@@ -23,24 +23,39 @@ payload = {'searchMode': 'any', 'searchFields': 'FormattedKey,RowKey', 'queryTyp
            'select': fields, 'skip': 0,
            'count': True, 'facets': ['Imprint,count:1', 'Authors,count:1']}
 
-csv_out = open('livros.csv', 'w+', newline='')
-writer = csv.DictWriter(csv_out, fieldnames=fields.split(','), extrasaction='ignore')
-writer.writeheader()
+csv_out = open('livros.csv', 'a', newline='')
+writer = csv.DictWriter(csv_out, fieldnames=[*fields.split(','), 'estante'], extrasaction='ignore')
+# writer.writeheader()
 
 
 def start(update, context):
-    update.message.reply_text('Digite ou leia código de barras de um ISBN'
-                              'para consultar no site isbn-search-br')
+    text= '''Digite ou leia código de barras de um ISBN
+    para consultar no site isbn-search-br
+    
+    Digite /estante <num> para informar o número da estante
+    '''
+    update.message.reply_text(text)
+
+
+def set_prateleira(update, context):
+    if update.message:
+        args = update.message.text.split()
+        if len(args) > 1:
+            estante = args[1]
+            context.user_data['estante'] = estante
+            update.message.reply_text('setando estante {}'.format(estante))
 
 
 def consulta_ISBN(update, context):
     try:
+        estante = context.user_data.get('estante', '-')
         text = update.message.text.strip()
         payload['search'] = text
         logger.info('Recebeu ISBN {}'.format(text))
         r = requests.post(ISBN_URL, json=payload, headers=headers)
         text = r.text
         livro_json = r.json()['value'][0]
+        livro_json['estante'] = estante
         writer.writerow(livro_json)
         csv_out.flush()
         text = livro_json['RowKey'] + ' - ' + livro_json['Title']
@@ -51,7 +66,7 @@ def consulta_ISBN(update, context):
 
 
 dispatcher.add_handler(CommandHandler('start', start))
-
+dispatcher.add_handler(CommandHandler('estante', set_prateleira))
 dispatcher.add_handler(MessageHandler(Filters.text, consulta_ISBN))
 
 dispatcher.add_error_handler(error)
