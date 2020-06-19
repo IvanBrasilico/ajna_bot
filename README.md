@@ -1,0 +1,1 @@
+Uma interface em Telegram para a API do Bhadrasana2 e do Ajna_API
