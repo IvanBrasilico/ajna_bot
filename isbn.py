@@ -4,6 +4,8 @@ import sys
 
 import requests
 
+from biblio.models import Livro
+
 sys.path.append('.')
 
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
@@ -66,9 +68,12 @@ def consulta_ISBN(update, context):
         livro_json['estante'] = estante
         writer.writerow(livro_json)
         csv_out.flush()
+        livro = Livro(livro_json)
+        session.add(livro)
+        session.commit()
         reply_text = livro_json['RowKey'] + ' - ' + livro_json['Title']
     except Exception as err:
-        reply_text = str(err)
+        reply_text = 'ERRO:' + str(err)
         logger.error(err, exc_info=True)
     update.message.reply_text(reply_text)
 
