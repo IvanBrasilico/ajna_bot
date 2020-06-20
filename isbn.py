@@ -68,7 +68,10 @@ def consulta_ISBN(update, context):
         livro_json['estante'] = estante
         writer.writerow(livro_json)
         csv_out.flush()
-        livro = Livro(livro_json)
+        livro_json_fields = {field:livro_json[field]
+                             for field in [*fields.split(','), 'estante']}
+        livro_json_fields['Authors'] = ','.join(livro_json_fields['Authors'])
+        livro = Livro(**livro_json_fields)
         session.add(livro)
         session.commit()
         reply_text = livro_json['RowKey'] + ' - ' + livro_json['Title']
