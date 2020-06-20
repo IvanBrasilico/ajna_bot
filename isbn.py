@@ -4,7 +4,7 @@ import sys
 
 import requests
 
-from biblio.models import Livro
+from biblio.models import Livro, session
 
 sys.path.append('.')
 
