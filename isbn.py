@@ -25,11 +25,13 @@ payload = {'searchMode': 'any', 'searchFields': 'FormattedKey,RowKey', 'queryTyp
 
 csv_out = open('livros.csv', 'a', newline='')
 writer = csv.DictWriter(csv_out, fieldnames=[*fields.split(','), 'estante'], extrasaction='ignore')
+
+
 # writer.writeheader()
 
 
 def start(update, context):
-    text= '''Digite ou leia código de barras de um ISBN
+    text = '''Digite ou leia código de barras de um ISBN
     para consultar no site isbn-search-br
     
     Digite /estante <num> para informar o número da estante
@@ -53,16 +55,22 @@ def consulta_ISBN(update, context):
         payload['search'] = text
         logger.info('Recebeu ISBN {}'.format(text))
         r = requests.post(ISBN_URL, json=payload, headers=headers)
-        text = r.text
-        livro_json = r.json()['value'][0]
+        try:
+            livro_json = r.json()['value'][0]
+        except IndexError:
+            livro_json = {'RowKey': text,
+                          'Title': text,
+                          'Colection': '',
+                          'Subject': 'ISBN não encontrado',
+                          'Authors': ''}
         livro_json['estante'] = estante
         writer.writerow(livro_json)
         csv_out.flush()
-        text = livro_json['RowKey'] + ' - ' + livro_json['Title']
+        reply_text = livro_json['RowKey'] + ' - ' + livro_json['Title']
     except Exception as err:
-        text = text + '\n' + str(err)
+        reply_text = str(err)
         logger.error(err, exc_info=True)
-    update.message.reply_text(text)
+    update.message.reply_text(reply_text)
 
 
 dispatcher.add_handler(CommandHandler('start', start))
