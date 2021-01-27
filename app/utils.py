@@ -1,5 +1,6 @@
 """Classes comuns do Bot"""
 import logging
+from abc import ABC
 
 from telegram.ext import BaseFilter
 
@@ -13,9 +14,12 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
-class FilterPrivateChat(BaseFilter):
+class FilterPrivateChat(BaseFilter, ABC):
     def filter(self, message):
         return message.chat_id > 0
+
+    def __call__(self):
+        pass
 
 
 private_chat = FilterPrivateChat()

@@ -94,7 +94,7 @@ def submit(update, context):
                'cnpjfiscalizado': 'CNPJ'}
     payload = {}
     for campoovr, campotela in campoovr_campotela.items():
-        valor =  ud.get(campotela)
+        valor = ud.get(campotela)
         if valor:
             payload[campoovr] = valor
     try:
