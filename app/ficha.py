@@ -9,7 +9,7 @@ from telegram.ext import ConversationHandler
 
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA
+    RVF_ABERTA, ADICIONA_DESCRICAO
 from config import APIURL
 from utils import logger
 
@@ -60,7 +60,8 @@ def minhas_fichas(update, context):
     except Exception as err:
         text = str(err)
     update.message.reply_text(
-        text,
+        "Selecione umas das fichas abaixo ou \nclique em \'Sair\' "
+        "para voltar ao Menu inicial",
         reply_markup=ReplyKeyboardMarkup([*opcoes, ['Sair']],
                                          one_time_keyboard=True))
     return MENU
@@ -248,9 +249,11 @@ def mostra_rvf(update, context):
             raise Exception(r.text)
         rvf = r.json()
         text.append('Container: {}'.format(rvf.get('numerolote')))
-        text.append('Envie texto para adicionar na descrição da Ficha')
+        #text.append('Envie texto para adicionar na descrição da Ficha')
         text.append('Envie fotos para inserir na Ficha')
-        text.append('Digite \'sair\' para voltar ao menu inicial')
+        text.append('Clique em \'Descrição\' para adicionar descrição na RVF')
+        text.append('Clique em \'Taseda\' para gerar um Termo de Apreensão')
+        text.append('Clique em \'sair\' para voltar ao menu inicial')
         text = '\n'.join(text)
     except Exception as err:
         text = 'Erro ao consultar a verificação. Digite novamente o id ou sair \n' + str(err)
@@ -261,7 +264,8 @@ def mostra_rvf(update, context):
         return SELECIONA_RVF
     update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardRemove())
+        reply_markup=ReplyKeyboardMarkup([['Descrição'],['Taseda'],['Sair']],
+                                         one_time_keyboard=True))
     return RVF_ABERTA
 
 
@@ -284,9 +288,17 @@ def edita_descricao_ficha(update, context):
         text = str(err) + str(r.text)
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
-                              reply_markup=ReplyKeyboardRemove())
+                              reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Taseda'], ['Sair']],
+                                                               one_time_keyboard=True))
     return RVF_ABERTA
 
+def inclui_descricao_rvf(update, context):
+    logger.info('inclui_descricao_rvf')
+
+    update.message.reply_text(
+        'Digite o texto que será adicionado ao campo \'descrição\'', reply_markup=ReplyKeyboardRemove())
+
+    return ADICIONA_DESCRICAO
 
 def upload_foto(update, context):
     logger.info('upload_foto')
@@ -360,3 +372,11 @@ def get_fotos(update, context):
         'Digite o id da verificação física ou o número do contêiner',
         reply_markup=ReplyKeyboardRemove())
     return FOTOS
+
+
+def get_taseda(update, context):
+    logger.info('get_taseda')
+    update.message.reply_text("Em construção...",
+                              reply_markup = ReplyKeyboardMarkup([['Descrição'], ['Taseda'], ['Sair']],
+                                       one_time_keyboard=True))
+    return RVF_ABERTA
