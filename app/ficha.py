@@ -9,7 +9,7 @@ from telegram.ext import ConversationHandler
 
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO
+    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA
 from config import APIURL
 from utils import logger
 
@@ -265,7 +265,7 @@ def mostra_rvf(update, context):
         return SELECIONA_RVF
     update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Foto'], ['Taseda'], ['Sair']],
+        reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']],
                                          one_time_keyboard=True))
     return RVF_ABERTA
 
@@ -290,7 +290,7 @@ def edita_descricao_ficha(update, context):
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                                  ['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']
                               ], one_time_keyboard=True))
     return RVF_ABERTA
 
@@ -333,7 +333,7 @@ def upload_foto(update, context):
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                                  ['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']
                               ], one_time_keyboard=True))
     return ADICIONA_FOTO
 
@@ -390,8 +390,38 @@ def get_fotos(update, context):
 
 def get_taseda(update, context):
     logger.info('get_taseda')
-    update.message.reply_text('Em construção...',
+    update.message.reply_text('Favor informar Apreensão de Cocaína - descrição e peso (kg): \n'
+                              'Clique no botão \'Taseda\' para gerar o Formulário\n'
+                              'Clique no botão \'Sair\' para voltar a tela inicial.',
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                                  ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
                               ], one_time_keyboard=True))
-    return RVF_ABERTA
+
+    return TASEDA
+
+def inclui_descricao_taseda(update, context):
+    logger.info('inclui_descricao_taseda')
+    update.message.reply_text(
+        'Em construção...',
+        reply_markup=ReplyKeyboardMarkup([
+            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
+        ], one_time_keyboard=True))
+    return TASEDA
+
+def inclui_peso_taseda(update, context):
+    logger.info('inclui_descricao_taseda')
+    update.message.reply_text(
+        'Em construção...',
+        reply_markup=ReplyKeyboardMarkup([
+            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
+        ], one_time_keyboard=True))
+    return TASEDA
+
+def upload_taseda(update, context):
+    logger.info('inclui_descricao_taseda')
+    update.message.reply_text(
+        'Em construção...',
+        reply_markup=ReplyKeyboardMarkup([
+            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
+        ], one_time_keyboard=True))
+    return TASEDA
