@@ -9,7 +9,7 @@ from telegram.ext import ConversationHandler
 
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA, ADICIONA_DESCRICAO
+    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO
 from config import APIURL
 from utils import logger
 
@@ -250,8 +250,9 @@ def mostra_rvf(update, context):
         rvf = r.json()
         text.append('Container: {}'.format(rvf.get('numerolote')))
         #text.append('Envie texto para adicionar na descrição da Ficha')
-        text.append('Envie fotos para inserir na Ficha')
+        # text.append('Envie fotos para inserir na Ficha')
         text.append('Clique em \'Descrição\' para adicionar descrição na RVF')
+        text.append('Clique em \'Foto\' para adicionar foto(s) na RVF')
         text.append('Clique em \'Taseda\' para gerar um Termo de Apreensão')
         text.append('Clique em \'sair\' para voltar ao menu inicial')
         text = '\n'.join(text)
@@ -264,7 +265,7 @@ def mostra_rvf(update, context):
         return SELECIONA_RVF
     update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardMarkup([['Descrição'],['Taseda'],['Sair']],
+        reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Foto'], ['Taseda'], ['Sair']],
                                          one_time_keyboard=True))
     return RVF_ABERTA
 
@@ -288,8 +289,9 @@ def edita_descricao_ficha(update, context):
         text = str(err) + str(r.text)
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
-                              reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Taseda'], ['Sair']],
-                                                               one_time_keyboard=True))
+                              reply_markup=ReplyKeyboardMarkup([
+                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                              ], one_time_keyboard=True))
     return RVF_ABERTA
 
 def inclui_descricao_rvf(update, context):
@@ -300,6 +302,15 @@ def inclui_descricao_rvf(update, context):
 
     return ADICIONA_DESCRICAO
 
+def inclui_foto_rvf(update ,context):
+    logger.info('inclui_foto_rvf')
+
+    update.message.reply_text('Envie a(s) foto(s) utilizando o Telegram.')
+
+    return ADICIONA_FOTO
+
+
+
 def upload_foto(update, context):
     logger.info('upload_foto')
     rvf_selecionado = context.user_data['rvf_id']
@@ -308,8 +319,10 @@ def upload_foto(update, context):
     try:
         file_id = update.message.photo[-1]
         new_file = context.bot.get_file(file_id)
+        dataModificacao = datetime.strftime(datetime.today(),'%Y-%m-%dT%H:%M:%S') + '.'
         payload = {'content': b64encode(new_file.download_as_bytearray()),
                    'filename': 'teste.jpg',
+                   'dataModificacao': dataModificacao,
                    'rvf_id': rvf_selecionado}
         r = requests.post(APIURL + 'api/rvf_imgupload', data=payload, verify=False)
         if r.status_code != 201:
@@ -318,10 +331,11 @@ def upload_foto(update, context):
     except Exception as err:
         text = str(err)
         logger.error(err, exc_info=True)
-    update.message.reply_text(
-        text,
-        reply_markup=ReplyKeyboardRemove())
-    return RVF_ABERTA
+    update.message.reply_text(text,
+                              reply_markup=ReplyKeyboardMarkup([
+                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                              ], one_time_keyboard=True))
+    return ADICIONA_FOTO
 
 
 def fecha_ficha(update, context):
@@ -376,7 +390,8 @@ def get_fotos(update, context):
 
 def get_taseda(update, context):
     logger.info('get_taseda')
-    update.message.reply_text("Em construção...",
-                              reply_markup = ReplyKeyboardMarkup([['Descrição'], ['Taseda'], ['Sair']],
-                                       one_time_keyboard=True))
+    update.message.reply_text('Em construção...',
+                              reply_markup=ReplyKeyboardMarkup([
+                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
+                              ], one_time_keyboard=True))
     return RVF_ABERTA
