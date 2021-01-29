@@ -4,7 +4,7 @@ import warnings
 from ficha import start, minhas_fichas, get_scan, get_fotos, get_conteiner, get_empresa, \
     seleciona_ficha, consulta_conteiner, consulta_empresa, send_scan, send_fotos, fecha_ficha, \
     mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, get_taseda, \
-    inclui_descricao_rvf
+    inclui_descricao_rvf, inclui_foto_rvf, inclui_descricao_taseda, inclui_peso_taseda, upload_taseda
 
 warnings.simplefilter('ignore')
 
@@ -12,7 +12,7 @@ from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHa
 
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA, ADICIONA_DESCRICAO
+    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA
 from novaficha import SELECAO_CAMPOS_FICHA, TYPING, save_input, abre_novaficha, submit, \
     salva_ce, salva_due, salva_cnpj, save_input_rvf, TYPING_RVF, SELECAO_CAMPOS_RVF, \
     salva_conteiner, submit_rvf, abre_novarvf
@@ -52,12 +52,20 @@ conv_handler = ConversationHandler(
         CONSULTA_RVF: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
                        MessageHandler(Filters.text, mostra_rvf)],
         RVF_ABERTA: [MessageHandler(Filters.regex('[S|s]air'), fecha_ficha),
-                     #MessageHandler(Filters.text, edita_descricao_ficha),
-                     #MessageHandler(Filters.regex('Descrição'), edita_descricao_ficha),
                      MessageHandler(Filters.regex('Descrição'), inclui_descricao_rvf),
-                     MessageHandler(Filters.photo, upload_foto),
+                     MessageHandler(Filters.regex('Foto'), inclui_foto_rvf),
                      MessageHandler(Filters.regex('Taseda'), get_taseda)],
         ADICIONA_DESCRICAO: [MessageHandler(Filters.text, edita_descricao_ficha)],
+        ADICIONA_FOTO: [MessageHandler(Filters.photo, upload_foto),
+                        MessageHandler(Filters.regex('Descrição'), inclui_descricao_rvf),
+                        MessageHandler(Filters.regex('Foto'), inclui_foto_rvf),
+                        MessageHandler(Filters.regex('Taseda'), get_taseda),
+                        MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)
+                        ],
+        TASEDA: [MessageHandler(Filters.regex('Descrição Apreensão'), inclui_descricao_taseda),
+                 MessageHandler(Filters.regex('Peso'), inclui_peso_taseda),
+                 MessageHandler(Filters.regex('Taseda'), upload_taseda),
+                 MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
         SELECAO_CAMPOS_FICHA: [
             MessageHandler(Filters.regex('Informar CE'), salva_ce),
             MessageHandler(Filters.regex('Informar DUE'), salva_due),
