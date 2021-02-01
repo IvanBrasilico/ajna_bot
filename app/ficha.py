@@ -249,7 +249,7 @@ def mostra_rvf(update, context):
             raise Exception(r.text)
         rvf = r.json()
         text.append('Container: {}'.format(rvf.get('numerolote')))
-        #text.append('Envie texto para adicionar na descrição da Ficha')
+        # text.append('Envie texto para adicionar na descrição da Ficha')
         # text.append('Envie fotos para inserir na Ficha')
         text.append('Clique em \'Descrição\' para adicionar descrição na RVF')
         text.append('Clique em \'Foto\' para adicionar foto(s) na RVF')
@@ -294,6 +294,7 @@ def edita_descricao_ficha(update, context):
                               ], one_time_keyboard=True))
     return RVF_ABERTA
 
+
 def inclui_descricao_rvf(update, context):
     logger.info('inclui_descricao_rvf')
 
@@ -302,13 +303,13 @@ def inclui_descricao_rvf(update, context):
 
     return ADICIONA_DESCRICAO
 
-def inclui_foto_rvf(update ,context):
+
+def inclui_foto_rvf(update, context):
     logger.info('inclui_foto_rvf')
 
     update.message.reply_text('Envie a(s) foto(s) utilizando o Telegram.')
 
     return ADICIONA_FOTO
-
 
 
 def upload_foto(update, context):
@@ -319,7 +320,7 @@ def upload_foto(update, context):
     try:
         file_id = update.message.photo[-1]
         new_file = context.bot.get_file(file_id)
-        dataModificacao = datetime.strftime(datetime.today(),'%Y-%m-%dT%H:%M:%S') + '.'
+        dataModificacao = datetime.strftime(datetime.today(), '%Y-%m-%dT%H:%M:%S') + '.'
         payload = {'content': b64encode(new_file.download_as_bytearray()),
                    'filename': 'teste.jpg',
                    'dataModificacao': dataModificacao,
@@ -391,31 +392,19 @@ def get_fotos(update, context):
 def get_taseda(update, context):
     logger.info('get_taseda')
     update.message.reply_text('Favor informar Apreensão de Cocaína - descrição e peso (kg): \n'
-                              'Clique no botão \'Taseda\' para gerar o Formulário\n'
+                              'Clique no botão \'Taseda\' para fazer upload do documento preenchido\n'
                               'Clique no botão \'Sair\' para voltar a tela inicial.',
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
+                                  ['Inclui Apreensão'], ['Taseda'], ['Sair']
                               ], one_time_keyboard=True))
 
     return TASEDA
 
-def inclui_descricao_taseda(update, context):
-    logger.info('inclui_descricao_taseda')
-    update.message.reply_text(
-        'Em construção...',
-        reply_markup=ReplyKeyboardMarkup([
-            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
-        ], one_time_keyboard=True))
-    return TASEDA
 
-def inclui_peso_taseda(update, context):
-    logger.info('inclui_descricao_taseda')
-    update.message.reply_text(
-        'Em construção...',
-        reply_markup=ReplyKeyboardMarkup([
-            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
-        ], one_time_keyboard=True))
-    return TASEDA
+def voltar_taseda(update, context):
+    logger.info('voltar_taseda')
+    return get_taseda(update, context)
+
 
 def upload_taseda(update, context):
     logger.info('inclui_descricao_taseda')

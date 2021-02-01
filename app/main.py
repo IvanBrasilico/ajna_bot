@@ -4,7 +4,7 @@ import warnings
 from ficha import start, minhas_fichas, get_scan, get_fotos, get_conteiner, get_empresa, \
     seleciona_ficha, consulta_conteiner, consulta_empresa, send_scan, send_fotos, fecha_ficha, \
     mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, get_taseda, \
-    inclui_descricao_rvf, inclui_foto_rvf, inclui_descricao_taseda, inclui_peso_taseda, upload_taseda
+    inclui_descricao_rvf, inclui_foto_rvf, upload_taseda, voltar_taseda
 
 warnings.simplefilter('ignore')
 
@@ -15,7 +15,8 @@ from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA
 from novaficha import SELECAO_CAMPOS_FICHA, TYPING, save_input, abre_novaficha, submit, \
     salva_ce, salva_due, salva_cnpj, save_input_rvf, TYPING_RVF, SELECAO_CAMPOS_RVF, \
-    salva_conteiner, submit_rvf, abre_novarvf
+    salva_conteiner, submit_rvf, abre_novarvf, submit_apreensao, informa_nova_apreensao, inclui_peso_apreensao, \
+    TYPING_APREENSAO, save_input_apreensao, SELECAO_CAMPOS_APREENSAO, inclui_descricao_apreensao
 from utils import logger, error
 
 sys.path.append('.')
@@ -60,12 +61,15 @@ conv_handler = ConversationHandler(
                         MessageHandler(Filters.regex('Descrição'), inclui_descricao_rvf),
                         MessageHandler(Filters.regex('Foto'), inclui_foto_rvf),
                         MessageHandler(Filters.regex('Taseda'), get_taseda),
-                        MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)
-                        ],
-        TASEDA: [MessageHandler(Filters.regex('Descrição Apreensão'), inclui_descricao_taseda),
-                 MessageHandler(Filters.regex('Peso'), inclui_peso_taseda),
+                        MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
+        TASEDA: [MessageHandler(Filters.regex('Inclui Apreensão'), informa_nova_apreensao),
                  MessageHandler(Filters.regex('Taseda'), upload_taseda),
                  MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
+        SELECAO_CAMPOS_APREENSAO: [MessageHandler(Filters.regex('Descrição'), inclui_descricao_apreensao),
+                                   MessageHandler(Filters.regex('Peso'), inclui_peso_apreensao),
+                                   MessageHandler(Filters.regex('Salvar Apreensão'), submit_apreensao),
+                                   MessageHandler(Filters.regex('Voltar'), voltar_taseda)],
+        TYPING_APREENSAO: [MessageHandler(Filters.text, save_input_apreensao)],
         SELECAO_CAMPOS_FICHA: [
             MessageHandler(Filters.regex('Informar CE'), salva_ce),
             MessageHandler(Filters.regex('Informar DUE'), salva_due),
