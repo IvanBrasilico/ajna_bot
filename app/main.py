@@ -4,7 +4,7 @@ import warnings
 from ficha import start, minhas_fichas, get_scan, get_fotos, get_conteiner, get_empresa, \
     seleciona_ficha, consulta_conteiner, consulta_empresa, send_scan, send_fotos, fecha_ficha, \
     mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, get_taseda, \
-    inclui_descricao_rvf, inclui_foto_rvf, upload_taseda, voltar_taseda
+    inclui_descricao_rvf, inclui_foto_rvf, voltar_taseda, download_taseda
 
 warnings.simplefilter('ignore')
 
@@ -63,7 +63,7 @@ conv_handler = ConversationHandler(
                         MessageHandler(Filters.regex('Taseda'), get_taseda),
                         MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
         TASEDA: [MessageHandler(Filters.regex('Inclui Apreensão'), informa_nova_apreensao),
-                 MessageHandler(Filters.regex('Taseda'), upload_taseda),
+                 MessageHandler(Filters.regex('Taseda'), download_taseda),
                  MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
         SELECAO_CAMPOS_APREENSAO: [MessageHandler(Filters.regex('Descrição'), inclui_descricao_apreensao),
                                    MessageHandler(Filters.regex('Peso'), inclui_peso_apreensao),

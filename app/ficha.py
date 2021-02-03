@@ -1,5 +1,6 @@
 """Funções para consultar Endpoints do bhadrasana2."""
 import io
+import os
 from base64 import b64encode
 from datetime import datetime, timedelta
 
@@ -392,7 +393,7 @@ def get_fotos(update, context):
 def get_taseda(update, context):
     logger.info('get_taseda')
     update.message.reply_text('Favor informar Apreensão de Cocaína - descrição e peso (kg): \n'
-                              'Clique no botão \'Taseda\' para fazer upload do documento preenchido\n'
+                              'Clique no botão \'Taseda\' para fazer download do documento preenchido\n'
                               'Clique no botão \'Sair\' para voltar a tela inicial.',
                               reply_markup=ReplyKeyboardMarkup([
                                   ['Inclui Apreensão'], ['Taseda'], ['Sair']
@@ -406,11 +407,30 @@ def voltar_taseda(update, context):
     return get_taseda(update, context)
 
 
-def upload_taseda(update, context):
-    logger.info('inclui_descricao_taseda')
+def download_taseda(update, context):
+    logger.info('download_taseda')
+
+    payload = {
+        'rvf_id': context.user_data['rvf_id'],
+        'tipo': 'taseda'
+    }
+    # envia um docx salvo na pasta atual
+    context.bot.sendDocument(chat_id=update.effective_chat.id,
+                            document=open(os.path.join('.', 'taseda.docx'), 'rb'))
+
+    # try:
+    #     r = requests.post(APIURL + 'api/gerar_taseda', data=payload, verify=False)
+    #     if r.status_code != 201:
+    #         raise Exception(r.text)
+    #     documentob64 = b64encode.decodebytes((r.json().get('documento')))
+    #
+    # except Exception as err:
+    #     text = str(err)
+    #     logger.error(err, exc_info=True)
+
     update.message.reply_text(
-        'Em construção...',
+        'Clique em \'Baixar\' para salvar o arquivo',
         reply_markup=ReplyKeyboardMarkup([
-            ['Descrição Apreensão'], ['Peso'], ['Taseda (em construção)'], ['Sair']
+            ['Descrição'], ['Peso'], ['Taseda (em construção)'], ['Sair']
         ], one_time_keyboard=True))
-    return TASEDA
+    return RVF_ABERTA
