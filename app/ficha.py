@@ -266,7 +266,7 @@ def mostra_rvf(update, context):
         return SELECIONA_RVF
     update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']],
+        reply_markup=ReplyKeyboardMarkup([['Descrição'], ['Foto'], ['Taseda'], ['Sair']],
                                          one_time_keyboard=True))
     return RVF_ABERTA
 
@@ -291,7 +291,7 @@ def edita_descricao_ficha(update, context):
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']
+                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
                               ], one_time_keyboard=True))
     return RVF_ABERTA
 
@@ -335,7 +335,7 @@ def upload_foto(update, context):
         logger.error(err, exc_info=True)
     update.message.reply_text(text,
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Descrição'], ['Foto'], ['Taseda (em construção)'], ['Sair']
+                                  ['Descrição'], ['Foto'], ['Taseda'], ['Sair']
                               ], one_time_keyboard=True))
     return ADICIONA_FOTO
 
@@ -393,10 +393,10 @@ def get_fotos(update, context):
 def get_taseda(update, context):
     logger.info('get_taseda')
     update.message.reply_text('Favor informar Apreensão de Cocaína - descrição e peso (kg): \n'
-                              'Clique no botão \'Taseda\' para fazer download do documento preenchido\n'
+                              'Clique no botão \'Gerar Taseda\' para fazer download do documento preenchido\n'
                               'Clique no botão \'Sair\' para voltar a tela inicial.',
                               reply_markup=ReplyKeyboardMarkup([
-                                  ['Inclui Apreensão'], ['Taseda'], ['Sair']
+                                  ['Incluir Apreensão'], ['Gerar Taseda'], ['Sair']
                               ], one_time_keyboard=True))
 
     return TASEDA
@@ -409,28 +409,30 @@ def voltar_taseda(update, context):
 
 def download_taseda(update, context):
     logger.info('download_taseda')
-
+    rvf_id = context.user_data['rvf_id']
     payload = {
         'rvf_id': context.user_data['rvf_id'],
         'tipo': 'taseda'
     }
-    # envia um docx salvo na pasta atual
-    context.bot.sendDocument(chat_id=update.effective_chat.id,
-                            document=open(os.path.join('.', 'taseda.docx'), 'rb'))
+    try:
+        r = requests.post(APIURL + 'api/gerar_taseda', data=payload, verify=False)
+        if r.status_code != 200:
+            raise Exception(r.text)
+        teste = r.json()
+        path_documento = r.json()
+        context.bot.sendDocument(chat_id=update.effective_chat.id,
+                                 document=open(path_documento, 'rb'))
+        text = 'Clique em \'Baixar\' para salvar o arquivo \n'
+        # utilização do arquivo enviado em bytes
+        # documentob64 = b64encode.decodebytes((r.json().get('documento')))
+        # função que pega o documento enviado em bytes (criado em memória) e faz decode
+        # documento = b64encode.decodebytes((r.json().get('documento')))
+        # context.bot.sendDocument(chat_id=update.effective_chat.id,
+        #                          document=documento, 'rb'))
+    except Exception as err:
+        text = str(err)
+        logger.error(err, exc_info=True)
 
-    # try:
-    #     r = requests.post(APIURL + 'api/gerar_taseda', data=payload, verify=False)
-    #     if r.status_code != 201:
-    #         raise Exception(r.text)
-    #     documentob64 = b64encode.decodebytes((r.json().get('documento')))
-    #
-    # except Exception as err:
-    #     text = str(err)
-    #     logger.error(err, exc_info=True)
+    update.message.reply_text(text)
 
-    update.message.reply_text(
-        'Clique em \'Baixar\' para salvar o arquivo',
-        reply_markup=ReplyKeyboardMarkup([
-            ['Descrição'], ['Peso'], ['Taseda (em construção)'], ['Sair']
-        ], one_time_keyboard=True))
-    return RVF_ABERTA
+    return start(update, context)

@@ -210,14 +210,14 @@ def informa_nova_apreensao(update, context):
     return novaapreensao_start(update, context)
 
 
-campos_apreensao = {DESCRICAO_APREENSAO: 'Descrição', PESO_APREENSAO: 'Peso'}
+campos_apreensao = {DESCRICAO_APREENSAO: 'Descrição da Apreensão', PESO_APREENSAO: 'Peso da Apreensão'}
 
 
 def novaapreensao_start(update, context):
     """Send a message when the command /start is issued."""
     logger.info('novaapreensao_start')
-    buttons = [['Descrição'],
-               ['Peso'],
+    buttons = [['Descrição da Apreensão'],
+               ['Peso da Apreensão'],
                ['Salvar Apreensão'],
                ['Voltar']]
     keyboard = ReplyKeyboardMarkup(buttons)
@@ -272,15 +272,15 @@ def submit_apreensao(update, context):
     logger.info('submit_apreensao')
     ud = context.user_data
     print(ud)
-    campos_apreensao = {'descricao': 'Descrição',
-                        'peso': 'Peso'}
+    campos_apreensao = {'descricao': 'Descrição da Apreensão',
+                        'peso': 'Peso da Apreensão'}
     payload = {'tipoapreensao': '1'}
     for campoapreensao, campotela in campos_apreensao.items():
         valor = ud.get(campotela)
         if valor:
             payload[campoapreensao] = valor
     try:
-        if len(payload) == 1:
+        if len(payload) == 1:  # está fixo o tipo de apreensão para somente Cocaína
             raise ValueError('Informe pelo menos um campo Descrição ou Peso!!')
         # Adicionar CPF após os campos #
         # TODO: Será dispensável quando autenticar
