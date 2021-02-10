@@ -119,7 +119,8 @@ def submit(update, context):
         text = str(type(err)) + ' - ' + str(err)
         update.message.reply_text(text)
 
-    # update.message.reply_text('OVR {} incluída '.format(ovr_id), reply_markup=ReplyKeyboardRemove())
+    # update.message.reply_text('OVR {} incluída '.format(ovr_id),
+    # reply_markup=ReplyKeyboardRemove())
 
 
 def abre_novarvf(update, context):
@@ -210,7 +211,8 @@ def informa_nova_apreensao(update, context):
     return novaapreensao_start(update, context)
 
 
-campos_apreensao = {DESCRICAO_APREENSAO: 'Descrição da Apreensão', PESO_APREENSAO: 'Peso da Apreensão'}
+campos_apreensao = {DESCRICAO_APREENSAO: 'Descrição da Apreensão',
+                    PESO_APREENSAO: 'Peso da Apreensão'}
 
 
 def novaapreensao_start(update, context):
@@ -229,7 +231,8 @@ def novaapreensao_start(update, context):
         if valor is not None:
             text += descricao + ': ' + valor + '\n'
     if text == '':
-        text = 'Informe os campos Descrição e Peso,\ndepois confirme criação no botão "Salvar Apreensão"'
+        text = 'Informe os campos Descrição e Peso,\n' \
+               'depois confirme criação no botão "Salvar Apreensão"'
     update.message.reply_text(text=text,
                               reply_markup=keyboard)
     return SELECAO_CAMPOS_APREENSAO

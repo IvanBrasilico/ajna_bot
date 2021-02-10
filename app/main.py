@@ -1,29 +1,27 @@
 import sys
+sys.path.append('.')
 import warnings
+from config import BOTTOKEN
+from utils import logger, error
+from telegram.ext import Updater
 
 from ficha import start, minhas_fichas, get_scan, get_fotos, get_conteiner, get_empresa, \
     seleciona_ficha, consulta_conteiner, consulta_empresa, send_scan, send_fotos, fecha_ficha, \
-    mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, get_taseda, \
-    inclui_descricao_rvf, inclui_foto_rvf, voltar_taseda, download_taseda
-
-warnings.simplefilter('ignore')
+    mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, \
+    get_taseda, inclui_descricao_rvf, inclui_foto_rvf, voltar_taseda, download_taseda, \
+    verificacoes_conteiner
 
 from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler
-
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA
+    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA, VERIFICACOES_CONTEINER
 from novaficha import SELECAO_CAMPOS_FICHA, TYPING, save_input, abre_novaficha, submit, \
     salva_ce, salva_due, salva_cnpj, save_input_rvf, TYPING_RVF, SELECAO_CAMPOS_RVF, \
-    salva_conteiner, submit_rvf, abre_novarvf, submit_apreensao, informa_nova_apreensao, inclui_peso_apreensao, \
-    TYPING_APREENSAO, save_input_apreensao, SELECAO_CAMPOS_APREENSAO, inclui_descricao_apreensao
-from utils import logger, error
+    salva_conteiner, submit_rvf, abre_novarvf, submit_apreensao, informa_nova_apreensao, \
+    inclui_peso_apreensao, TYPING_APREENSAO, save_input_apreensao, SELECAO_CAMPOS_APREENSAO, \
+    inclui_descricao_apreensao
 
-sys.path.append('.')
-
-from telegram.ext import Updater
-
-from config import BOTTOKEN
+warnings.simplefilter('ignore')
 
 updater = Updater(token=BOTTOKEN, use_context=True)
 dispatcher = updater.dispatcher
@@ -32,6 +30,8 @@ conv_handler = ConversationHandler(
     entry_points=[CommandHandler('start', start)],
     states={
         MENU: [MessageHandler(Filters.regex('Minhas Fichas'), minhas_fichas),
+               MessageHandler(Filters.regex('Verificações por Conteiner'),
+                              verificacoes_conteiner),
                MessageHandler(Filters.regex('Imagem Escaner'), get_scan),
                MessageHandler(Filters.regex('Fotos verificacao'), get_fotos),
                MessageHandler(Filters.regex('Consulta Conteiner'), get_conteiner),
@@ -40,6 +40,7 @@ conv_handler = ConversationHandler(
                MessageHandler(Filters.regex('Nova Ficha'), abre_novaficha),
                MessageHandler(Filters.text, start)],
         MINHAS_FICHAS: [MessageHandler(Filters.text, minhas_fichas)],
+        VERIFICACOES_CONTEINER: [MessageHandler(Filters.regex('Conteiner:.*'), seleciona_ficha)],
         CONSULTA_CONTEINER: [MessageHandler(Filters.text, consulta_conteiner)],
         CONSULTA_EMPRESA: [MessageHandler(Filters.text, consulta_empresa)],
         SCAN: [MessageHandler(Filters.text, send_scan)],
@@ -65,9 +66,12 @@ conv_handler = ConversationHandler(
         TASEDA: [MessageHandler(Filters.regex('Incluir Apreensão'), informa_nova_apreensao),
                  MessageHandler(Filters.regex('Gerar Taseda'), download_taseda),
                  MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
-        SELECAO_CAMPOS_APREENSAO: [MessageHandler(Filters.regex('Descrição da Apreensão'), inclui_descricao_apreensao),
-                                   MessageHandler(Filters.regex('Peso da Apreensão'), inclui_peso_apreensao),
-                                   MessageHandler(Filters.regex('Salvar Apreensão'), submit_apreensao),
+        SELECAO_CAMPOS_APREENSAO: [MessageHandler(Filters.regex('Descrição da Apreensão'),
+                                                  inclui_descricao_apreensao),
+                                   MessageHandler(Filters.regex('Peso da Apreensão'),
+                                                  inclui_peso_apreensao),
+                                   MessageHandler(Filters.regex('Salvar Apreensão'),
+                                                  submit_apreensao),
                                    MessageHandler(Filters.regex('Voltar'), voltar_taseda)],
         TYPING_APREENSAO: [MessageHandler(Filters.text, save_input_apreensao)],
         SELECAO_CAMPOS_FICHA: [

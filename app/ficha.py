@@ -1,6 +1,5 @@
 """Funções para consultar Endpoints do bhadrasana2."""
 import io
-import os
 from base64 import b64encode
 from datetime import datetime, timedelta
 
@@ -16,8 +15,11 @@ from utils import logger
 
 
 def start(update, context):
-    initial_menu = [['Minhas Fichas'], ['Consulta Conteiner'], ['Consulta Empresa'],
-                    ['Imagem Escaner'], ['Fotos verificacao'], ['Nova Ficha']]
+    initial_menu = [['Minhas Fichas'], ['Verificações por Conteiner'],
+                    ['Consulta Conteiner'], ['Consulta Empresa'],
+                    ['Imagem Escaner'], ['Fotos verificacao'],
+                    ['Nova Ficha']]
+
     logger.info('start')
     user_name = update.message.from_user.username
     logger.info('%s Starting... ' % user_name)
@@ -40,13 +42,13 @@ def get_cpf_usuario_telegram(user_name):
     # TODO: decorador para chamar em todas as entrados para evitar entrada direta
     r = requests.get(APIURL + 'get_cpf_telegram/%s' % user_name, verify=False)
     if r.status_code != 200:
-        raise Exception('Erro: %s - %s (erro 404 pode ser Usuário não cadastrado)' % (r.status_code, r.text))
+        raise Exception('Erro: %s - %s (erro 404 pode ser Usuário não cadastrado)'
+                        % (r.status_code, r.text))
     return r.json().get('cpf')
 
 
 def minhas_fichas(update, context):
     logger.info('minhas_fichas')
-    # print(dir(update.message))
     user_name = update.message.from_user.username
     logger.info(user_name)
     try:
@@ -54,19 +56,21 @@ def minhas_fichas(update, context):
         r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf, verify=False)
         if r.status_code != 200:
             raise Exception('Erro: %s - %s' % (r.status_code, r.text))
-        text = r.text
         linhas = r.text.split('\n')
-        # print(len(linhas))
         opcoes = [['Abre Ficha %s' % linha.split()[0].strip()] for linha in linhas[1:]]
     except Exception as err:
         text = str(err)
+        update.message.reply_text(text,
+                                  reply_markup=ReplyKeyboardMarkup(
+                                      [*opcoes, ['Sair']],
+                                      one_time_keyboard=True)
+                                  )
     update.message.reply_text(
         "Selecione umas das fichas abaixo ou \nclique em \'Sair\' "
         "para voltar ao Menu inicial",
         reply_markup=ReplyKeyboardMarkup([*opcoes, ['Sair']],
                                          one_time_keyboard=True))
     return MENU
-    # return start(update, context)
 
 
 def consulta_conteiner(update, context):
@@ -92,8 +96,8 @@ def consulta_conteiner(update, context):
 def consulta_empresa(update, context):
     logger.info('empresa')
     try:
-        fim = datetime.now()
-        inicio = fim - timedelta(days=90)
+        # fim = datetime.now()
+        # inicio = fim - timedelta(days=90)
         cnpj = update.message.text
         user_name = update.message.from_user.username
         logger.info('%s consultando empresa %s' % (user_name, cnpj))
@@ -240,7 +244,7 @@ def mostra_rvf(update, context):
     user_name = update.message.from_user.username
     logger.info('%s mostra_ficha rvf %s... ' % (user_name, rvf_selecionado))
     text = []
-    result = RVF_ABERTA
+    # result = RVF_ABERTA
     text.append('Verificação física selecionada: %s' % rvf_selecionado)
     try:
         if not isinstance(rvf_selecionado, str):
@@ -300,7 +304,8 @@ def inclui_descricao_rvf(update, context):
     logger.info('inclui_descricao_rvf')
 
     update.message.reply_text(
-        'Digite o texto que será adicionado ao campo \'descrição\'', reply_markup=ReplyKeyboardRemove())
+        'Digite o texto que será adicionado ao campo \'descrição\'',
+        reply_markup=ReplyKeyboardRemove())
 
     return ADICIONA_DESCRICAO
 
@@ -371,7 +376,8 @@ def get_conteiner(update, context):
 def get_empresa(update, context):
     logger.info('get_empresa')
     update.message.reply_text(
-        'Digite o CNPJ a consultar, com no mínimo 8 dígitos (sem máscara)', reply_markup=ReplyKeyboardRemove())
+        'Digite o CNPJ a consultar, com no mínimo 8 dígitos (sem máscara)',
+        reply_markup=ReplyKeyboardRemove())
     return CONSULTA_EMPRESA
 
 
@@ -393,7 +399,8 @@ def get_fotos(update, context):
 def get_taseda(update, context):
     logger.info('get_taseda')
     update.message.reply_text('Favor informar Apreensão de Cocaína - descrição e peso (kg): \n'
-                              'Clique no botão \'Gerar Taseda\' para fazer download do documento preenchido\n'
+                              'Clique no botão \'Gerar Taseda\' para fazer download do documento '
+                              'preenchido\n'
                               'Clique no botão \'Sair\' para voltar a tela inicial.',
                               reply_markup=ReplyKeyboardMarkup([
                                   ['Incluir Apreensão'], ['Gerar Taseda'], ['Sair']
@@ -409,7 +416,6 @@ def voltar_taseda(update, context):
 
 def download_taseda(update, context):
     logger.info('download_taseda')
-    rvf_id = context.user_data['rvf_id']
     payload = {
         'rvf_id': context.user_data['rvf_id'],
         'tipo': 'taseda'
@@ -418,7 +424,6 @@ def download_taseda(update, context):
         r = requests.post(APIURL + 'api/gerar_taseda', data=payload, verify=False)
         if r.status_code != 200:
             raise Exception(r.text)
-        teste = r.json()
         path_documento = r.json()
         context.bot.sendDocument(chat_id=update.effective_chat.id,
                                  document=open(path_documento, 'rb'))
@@ -436,3 +441,21 @@ def download_taseda(update, context):
     update.message.reply_text(text)
 
     return start(update, context)
+
+
+def verificacoes_conteiner(update, context):
+    """
+    1) busca todas as fichas do servidor,
+    2) abre todas as rvfs
+    3) recupera os conteiners de cada verificação
+    4) cria lista com nome do Conteiner: , RVF: , Ficha:
+    """
+    initial_menu = [['Minhas Fichas'], ['Verificações por Conteiner'],
+                    ['Consulta Conteiner'], ['Consulta Empresa'],
+                    ['Imagem Escaner'], ['Fotos verificacao'],
+                    ['Nova Ficha']]
+    update.message.reply_text("Em construção...",
+                              reply_markup=ReplyKeyboardMarkup(
+                                  initial_menu,
+                                  one_time_keyboard=True))
+    return MENU
