@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('.')
 import warnings
 from config import BOTTOKEN
@@ -9,7 +10,7 @@ from ficha import start, minhas_fichas, get_scan, get_fotos, get_conteiner, get_
     seleciona_ficha, consulta_conteiner, consulta_empresa, send_scan, send_fotos, fecha_ficha, \
     mostra_ficha, seleciona_rvf, mostra_rvf, edita_descricao_ficha, upload_foto, cancel, \
     get_taseda, inclui_descricao_rvf, inclui_foto_rvf, voltar_taseda, download_taseda, \
-    verificacoes_conteiner
+    verificacoes_conteiner, seleciona_ficha_conteiner
 
 from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
@@ -40,7 +41,9 @@ conv_handler = ConversationHandler(
                MessageHandler(Filters.regex('Nova Ficha'), abre_novaficha),
                MessageHandler(Filters.text, start)],
         MINHAS_FICHAS: [MessageHandler(Filters.text, minhas_fichas)],
-        VERIFICACOES_CONTEINER: [MessageHandler(Filters.regex('Conteiner:.*'), seleciona_ficha)],
+        VERIFICACOES_CONTEINER: [MessageHandler(Filters.regex('Conteiner:.*'),
+                                                seleciona_ficha_conteiner),
+                                 MessageHandler(Filters.regex('[S|s]air'), fecha_ficha)],
         CONSULTA_CONTEINER: [MessageHandler(Filters.text, consulta_conteiner)],
         CONSULTA_EMPRESA: [MessageHandler(Filters.text, consulta_empresa)],
         SCAN: [MessageHandler(Filters.text, send_scan)],

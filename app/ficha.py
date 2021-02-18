@@ -9,7 +9,7 @@ from telegram.ext import ConversationHandler
 
 from base import MENU, MINHAS_FICHAS, CONSULTA_CONTEINER, CONSULTA_EMPRESA, \
     SCAN, FOTOS, SELECIONA_FICHA, CONSULTA_FICHA, SELECIONA_RVF, CONSULTA_RVF, \
-    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA
+    RVF_ABERTA, ADICIONA_DESCRICAO, ADICIONA_FOTO, TASEDA, VERIFICACOES_CONTEINER
 from config import APIURL
 from utils import logger
 
@@ -445,17 +445,40 @@ def download_taseda(update, context):
 
 def verificacoes_conteiner(update, context):
     """
-    1) busca todas as fichas do servidor,
-    2) abre todas as rvfs
-    3) recupera os conteiners de cada verificação
-    4) cria lista com nome do Conteiner: , RVF: , Ficha:
+    API: /api/minhas_verificacoes'
     """
-    initial_menu = [['Minhas Fichas'], ['Verificações por Conteiner'],
-                    ['Consulta Conteiner'], ['Consulta Empresa'],
-                    ['Imagem Escaner'], ['Fotos verificacao'],
-                    ['Nova Ficha']]
-    update.message.reply_text("Em construção...",
-                              reply_markup=ReplyKeyboardMarkup(
-                                  initial_menu,
-                                  one_time_keyboard=True))
-    return MENU
+
+    logger.info('verificacoes_conteiner')
+    try:
+        cpf = context.user_data['cpf']
+        r = requests.get(APIURL + '/api/minhas_verificacoes?cpf=%s' % cpf, verify=False)
+        if r.status_code != 200:
+            raise Exception('Erro: %s - %s' % (r.status_code, r.text))
+        content = r.json()
+        botoes = []
+        for rvf, conteiner in content.items():
+            botoes.append([f'Conteiner: {str(conteiner)} - RVF: {str(rvf)}'])
+    except Exception as err:
+        logger.error(err, exc_info=True)
+        update.message.reply_text(str(err))
+
+    update.message.reply_text(
+        "Selecione umas das verificações físicas abaixo ou \nclique em \'Sair\' "
+        "para voltar ao Menu inicial",
+        reply_markup=ReplyKeyboardMarkup([*botoes, ['Sair']],
+                                         one_time_keyboard=True))
+    return VERIFICACOES_CONTEINER
+
+
+def seleciona_ficha_conteiner(update, context):
+    logger.info('seleciona_ficha_conteiner')
+    text_parts = update.message.text.split()
+    if len(text_parts) > 3:
+        print('Veio por botão, passar direto para rvf %s...' % text_parts[4])
+        context.user_data['rvf_id'] = text_parts[4].strip()
+        return mostra_rvf(update, context)
+    update.message.reply_text(
+        'Digite o id da Verificação Física a editar\n'
+        'ou \'sair\' para o menu inicial',
+        reply_markup=ReplyKeyboardRemove())
+    return CONSULTA_RVF
