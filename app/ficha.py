@@ -51,6 +51,7 @@ def minhas_fichas(update, context):
     logger.info('minhas_fichas')
     user_name = update.message.from_user.username
     logger.info(user_name)
+    opcoes = []
     try:
         cpf = context.user_data['cpf']
         r = requests.get(APIURL + 'minhas_fichas_text?cpf=%s' % cpf, verify=False)
